@@ -137,6 +137,7 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
         return "overtime/overtime-month-view";
     }
 
+
     @GetMapping("/year/{year}")
     public String viewOvertimeYear(@PathVariable int year, Model model, HttpServletRequest request) {
         final var userIdComposite = authenticationFacade.getCurrentUserIdComposite();

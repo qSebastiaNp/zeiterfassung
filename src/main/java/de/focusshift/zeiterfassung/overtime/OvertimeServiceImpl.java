@@ -128,4 +128,28 @@ class OvertimeServiceImpl implements OvertimeService {
         
         return overtime;
     }
+    
+    @Override
+    public Map<LocalDate, OvertimeHours> getOvertimeForDatesAndUser(LocalDate startDate, LocalDate endDate, UserLocalId userLocalId) {
+        Map<LocalDate, OvertimeHours> result = new HashMap<>();
+        
+        // OPTIMIZED: Use batch processing instead of day-by-day queries
+        // This reduces thousands of queries to just a few batch queries
+        final Map<LocalDate, ReportDay> reportDays = reportServiceRaw.getReportDaysForAllUsers(startDate, endDate);
+        
+        for (Map.Entry<LocalDate, ReportDay> entry : reportDays.entrySet()) {
+            final LocalDate date = entry.getKey();
+            final ReportDay reportDay = entry.getValue();
+            
+            final OvertimeHours overtime = reportDay.overtimeByUser().entrySet().stream()
+                .filter(userEntry -> userEntry.getKey().localId().equals(userLocalId))
+                .findFirst()
+                .map(Map.Entry::getValue)
+                .orElse(OvertimeHours.ZERO);
+            
+            result.put(date, overtime);
+        }
+        
+        return result;
+    }
 }
