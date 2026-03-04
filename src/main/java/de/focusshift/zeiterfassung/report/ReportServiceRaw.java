@@ -140,6 +140,42 @@ public class ReportServiceRaw {
             period -> workingTimeCalendarService.getWorkingTimeCalendarForAllUsers(period.from(), period.toExclusive()));
     }
 
+    /**
+     * Get report days for a date range for all users in one batch operation.
+     * This is much more efficient than calling getReportDayForAllUsers() for each day.
+     */
+    public Map<LocalDate, ReportDay> getReportDaysForAllUsers(LocalDate startDate, LocalDate endDate) {
+        
+        final Map<UserIdComposite, User> userById = userManagementService.findAllUsers().stream()
+            .collect(toMap(User::userIdComposite, identity()));
+
+        // Batch load all data for the entire period
+        final Map<LocalDate, Map<UserIdComposite, TimeEntryDay>> timeEntryDaysByDate =
+            timeEntryDaysForAllUsers(startDate, endDate.plusDays(1));
+
+        final Map<UserIdComposite, WorkingTimeCalendar> workingTimeCalendarByUserId =
+            workingTimeCalendarService.getWorkingTimeCalendarForAllUsers(startDate, endDate.plusDays(1));
+
+        // Check locking settings once for the entire period
+        final LockTimeEntriesSettings settings = timeEntryLockService.getLockTimeEntriesSettings();
+
+        // Build report days for each date
+        final Map<LocalDate, ReportDay> reportDays = new HashMap<>();
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            final boolean locked = timeEntryLockService.isLocked(date, settings);
+            final ReportDay reportDay = toReportDay(
+                date,
+                userById,
+                workingTimeCalendarByUserId,
+                timeEntryDaysByDate,
+                locked
+            );
+            reportDays.put(date, reportDay);
+        }
+
+        return reportDays;
+    }
+
     private Map<LocalDate, Map<UserIdComposite, TimeEntryDay>> timeEntryDaysForAllUsers(LocalDate from, LocalDate toExclusive) {
         final Map<UserIdComposite, List<TimeEntryDay>> timeEntryDaysByUser = timeEntryDayService.getTimeEntryDaysForAllUsers(from, toExclusive);
         return groupByDate(timeEntryDaysByUser);
