@@ -1,0 +1,142 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de" th:lang="${lang}">
+  <head
+    th:replace="~{_layout::head(title=~{::title}, styles=~{::styles}, scripts=~{::scripts}, scriptsDefer=~{::scriptsDefer})}"
+  >
+    <title th:text="#{overtime.year.page.title}">Überstunden - Jahresübersicht</title>
+    <th:block th:fragment="styles">
+      <!-- Keine zusätzlichen Stylesheets nötig -->
+    </th:block>
+  </head>
+  <body th:replace="~{_layout::body(~{::content})}">
+    <th:block th:fragment="content">
+      <main class="flex-1 flex flex-col">
+        <div class="mx-auto w-full max-w-screen-lg mb-16 md:mb-28">
+          <div class="px-4">
+            <!-- Year Navigation -->
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+              <h1 class="text-2xl text-blue-700 text-center lg:text-left mb-4 lg:mb-0" th:text="#{overtime.year.page.title} + ' ' + ${year}">
+                Überstunden <span th:text="${year}">2024</span>
+              </h1>
+              <div class="flex justify-center lg:justify-end space-x-4">
+                <a
+                  th:if="${previousYear}"
+                  th:href="@{/overtime/year/{year}(year=${previousYear})}"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7 7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 13-7-7 7" />
+                  </svg>
+                  <span th:text="#{overtime.year.previous}">Vorheriges Jahr</span>
+                </a>
+                <a
+                  th:if="${canNavigateToNext}"
+                  th:href="@{/overtime/year/{year}(year=${nextYear})}"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <span th:text="#{overtime.year.next}">Nächstes Jahr</span>
+                  <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <!-- Year Summary Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 class="text-lg font-semibold text-gray-800 mb-4" th:text="#{overtime.year.summary.title}">
+                Jahresübersicht
+              </h2>
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-600" th:text="#{overtime.year.total}">Gesamt</p>
+                  <p class="text-3xl font-bold" 
+                     th:classappend="${yearTotalNegative ? 'text-red-600' : 'text-green-600'}"
+                     th:text="${yearTotalFormatted}">
+                    +25:45
+                  </p>
+                </div>
+                <div class="text-right">
+                  <svg th:replace="~{icons/trending-up::svg}" class="w-12 h-12 text-gray-400"></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Monthly Breakdown -->
+            <div class="space-y-6">
+              <div th:each="monthData : ${monthlyData}" class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800" 
+                        th:text="#{overtime.month.title(${#temporals.format(monthData.month, 'MMMM yyyy')})}">
+                      Januar 2024
+                    </h3>
+                    <p class="text-sm font-medium" 
+                       th:classappend="${monthData.isNegative ? 'text-red-600' : 'text-green-600'}"
+                       th:text="${monthData.monthTotalFormatted}">
+                      +5:30
+                    </p>
+                  </div>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.date}">
+                          Datum
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.overtime}">
+                          Überstunden
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      <tr th:each="dailyOvertime : ${monthData.dailyData}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <span th:text="${#temporals.format(dailyOvertime.date, 'EEE, dd.MM.')}">Mo, 01.03.</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium" 
+                            th:classappend="${dailyOvertime.isNegative ? 'text-red-600' : 'text-green-600'}">
+                            <span th:if="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}">(<span th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>)</span>
+                            <span th:unless="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}" th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="mt-8 bg-blue-50 rounded-lg p-6">
+              <h3 class="text-lg font-semibold text-blue-800 mb-2" th:text="#{overtime.info.title}">
+                Informationen zu Ihren Überstunden
+              </h3>
+              <div class="space-y-2 text-sm text-blue-700">
+                <p th:text="#{overtime.year.info.description}">
+                  Hier sehen Sie Ihre täglichen Überstunden bzw. Minusstunden für das gesamte Jahr.
+                </p>
+                <p class="text-xs text-blue-600 italic">
+                  <strong>Hinweis:</strong> Die Überstunden des heutigen Tages stehen in Klammern und werden nicht in die Monats- oder Jahresgesamtsumme einberechnet, da der Tag noch nicht abgeschlossen ist.
+                </p>
+                <ul class="list-disc list-inside space-y-1">
+                  <li th:text="#{overtime.info.positive}">
+                    Positive Werte zeigen Überstunden an
+                  </li>
+                  <li th:text="#{overtime.info.negative}">
+                    Negative Werte zeigen Minusstunden an
+                  </li>
+                  <li th:text="#{overtime.info.balance}">
+                    Der Saldo zeigt Ihre aktuelle Gesamtbilanz
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </th:block>
+  </body>
+</html>
