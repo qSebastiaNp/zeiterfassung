@@ -1,0 +1,132 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de" th:lang="${lang}">
+  <head
+    th:replace="~{_layout::head(title=~{::title}, styles=~{::styles}, scripts=~{::scripts}, scriptsDefer=~{::scriptsDefer})}"
+  >
+    <title th:text="#{overtime.page.title}">Überstundenübersicht</title>
+    <th:block th:fragment="styles">
+      <link rel="stylesheet" type="text/css" th:href="@{/overtime.css}" />
+    </th:block>
+  </head>
+  <body th:replace="~{_layout::body(~{::content})}">
+    <th:block th:fragment="content">
+      <main class="flex-1 flex flex-col">
+        <div class="mx-auto w-full max-w-screen-lg mb-16 md:mb-28">
+          <div class="px-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+              <h1 class="text-2xl text-blue-700 text-center lg:text-left mb-4 lg:mb-0" th:text="#{overtime.page.title}">
+                Meine Überstunden
+              </h1>
+              <div class="flex justify-center lg:justify-end">
+                <span class="text-sm text-gray-600" th:text="#{overtime.page.subtitle(${user.fullName})}">
+                  Übersicht für 
+                </span>
+              </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <!-- Current Month Card -->
+              <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-2" th:text="#{overtime.month.title(${#temporals.format(currentMonth, 'MMMM yyyy')})}">
+                  Aktueller Monat
+                </h2>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm text-gray-600" th:text="#{overtime.month.total}">Gesamt</p>
+                    <p class="text-2xl font-bold" 
+                       th:classappend="${totalOvertimeNegative ? 'text-red-600' : 'text-green-600'}"
+                       th:text="${totalOvertimeFormatted}">
+                      +5:30
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <svg th:replace="~{icons/file-clock::svg}" class="w-8 h-8 text-gray-400"></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Year-to-Date Card -->
+              <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-2" th:text="#{overtime.year.title}">
+                  Jahresübersicht
+                </h2>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm text-gray-600" th:text="#{overtime.year.total}">Gesamt</p>
+                    <p class="text-2xl font-bold" 
+                       th:classappend="${yearOvertimeNegative ? 'text-red-600' : 'text-green-600'}"
+                       th:text="${yearOvertimeFormatted}">
+                      +12:15
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <svg th:replace="~{icons/trending-up::svg}" class="w-8 h-8 text-gray-400"></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Daily Breakdown -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+              <div class="px-6 py-4 bg-gray-50 border-b">
+                <h2 class="text-lg font-semibold text-gray-800" th:text="#{overtime.daily.title}">
+                  Tagesübersicht
+                </h2>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.date}">
+                        Datum
+                      </th>
+                      <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.overtime}">
+                        Überstunden
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr th:each="dailyOvertime : ${dailyOvertimeList}">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span th:text="${#temporals.format(dailyOvertime.date, 'EEE, dd.MM.')}">Mo, 01.03.</span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium" 
+                          th:classappend="${dailyOvertime.isNegative ? 'text-red-600' : 'text-green-600'}"
+                          th:text="${dailyOvertime.overtimeFormatted}">
+                        +0:30
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="mt-8 bg-blue-50 rounded-lg p-6">
+              <h3 class="text-lg font-semibold text-blue-800 mb-2" th:text="#{overtime.info.title}">
+                Informationen zu Ihren Überstunden
+              </h3>
+              <div class="space-y-2 text-sm text-blue-700">
+                <p th:text="#{overtime.info.description}">
+                  Hier sehen Sie Ihre täglichen Überstunden bzw. Minusstunden.
+                </p>
+                <ul class="list-disc list-inside space-y-1">
+                  <li th:text="#{overtime.info.positive}">
+                    Positive Werte zeigen Überstunden an
+                  </li>
+                  <li th:text="#{overtime.info.negative}">
+                    Negative Werte zeigen Minusstunden an
+                  </li>
+                  <li th:text="#{overtime.info.balance}">
+                    Der Saldo zeigt Ihre aktuelle Gesamtbilanz
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </th:block>
+  </body>
+</html>
