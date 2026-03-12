@@ -2,6 +2,7 @@ import { i18n } from "../../i18n";
 
 class TimeEntrySlotForm extends HTMLFormElement {
   #hasBeenTriedToSubmitAtLeastOnce = false;
+  #autoFillEnabled = true;
 
   connectedCallback() {
     // prevent html validation messages. we're doing it ourself here with JavaScript
@@ -32,6 +33,11 @@ class TimeEntrySlotForm extends HTMLFormElement {
     ) as HTMLInputElement;
 
     startElement.addEventListener("blur", () => {
+      console.debug("Blur event triggered on start input");
+      if (this.#autoFillEnabled) {
+        this.#autoFillDuration(startElement, durationElement);
+      }
+
       if (!this.#hasBeenTriedToSubmitAtLeastOnce) {
         return;
       }
@@ -216,8 +222,73 @@ class TimeEntrySlotForm extends HTMLFormElement {
 
     return valid;
   }
+
+  async #autoFillDuration(
+    startElement: HTMLInputElement,
+    durationElement: HTMLInputElement,
+  ) {
+    try {
+      const dateElement = this.querySelector(
+        "input[name='date']",
+      ) as HTMLInputElement;
+      const userLocalIdElement = this.querySelector(
+        "input[name='userLocalId']",
+      ) as HTMLInputElement;
+
+      if (!dateElement?.value || !startElement.value) {
+        console.debug("Auto-fill: Missing date or start time", {
+          date: dateElement?.value,
+          startTime: startElement.value,
+        });
+        return;
+      }
+
+      // Build API URL
+      const parameters = new URLSearchParams({
+        date: dateElement.value,
+        startTime: startElement.value,
+      });
+
+      if (userLocalIdElement?.value) {
+        parameters.append("userLocalId", userLocalIdElement.value);
+      }
+
+      const apiUrl = `/api/timeentries/remaining-hours?${parameters}`;
+      console.debug("Auto-fill: Calling API", apiUrl);
+
+      const response = await fetch(apiUrl);
+
+      if (!response.ok) {
+        console.error(
+          "Auto-fill: API call failed",
+          response.status,
+          response.statusText,
+        );
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.remainingHours && !durationElement.value) {
+        durationElement.value = data.remainingHours;
+        console.debug("Auto-fill: Set duration to", data.remainingHours);
+        // Dispatch input event to trigger any listeners
+        durationElement.dispatchEvent(new Event("input", { bubbles: true }));
+      } else {
+        console.debug("Auto-fill: No remaining hours or duration already set", {
+          hasRemainingHours: !!data.remainingHours,
+          durationValue: durationElement.value,
+        });
+      }
+    } catch (error) {
+      // Silently fail to not break the user experience
+      console.error("Failed to auto-fill duration:", error);
+    }
+  }
 }
 
 customElements.define("z-time-entry-slot-form", TimeEntrySlotForm, {
   extends: "form",
 });
+
+export default TimeEntrySlotForm;

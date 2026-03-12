@@ -1,1 +1,1 @@
-import "./TimeEntrySlotForm";
+export { default } from "./TimeEntrySlotForm";
