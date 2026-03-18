@@ -131,6 +131,10 @@ class OvertimeServiceImpl implements OvertimeService {
     
     @Override
     public Map<LocalDate, OvertimeHours> getOvertimeForDatesAndUser(LocalDate startDate, LocalDate endDate, UserLocalId userLocalId) {
+        // Cache working times and overtime account for performance
+        final List<WorkingTime> workingTimes = workingTimeService.getAllWorkingTimesByUser(userLocalId);
+        final OvertimeAccount overtimeAccount = overtimeAccountService.getOvertimeAccount(userLocalId);
+        
         Map<LocalDate, OvertimeHours> result = new HashMap<>();
         
         // OPTIMIZED: Use batch processing instead of day-by-day queries
@@ -147,9 +151,51 @@ class OvertimeServiceImpl implements OvertimeService {
                 .map(Map.Entry::getValue)
                 .orElse(OvertimeHours.ZERO);
             
-            result.put(date, overtime);
+            result.put(date, applyOvertimeCap(overtime, date, userLocalId, workingTimes, overtimeAccount));
         }
         
         return result;
+    }
+
+    /**
+     * Applies overtime cap if user is not allowed to work overtime.
+     * If overtime is not allowed, the worked hours will be capped at the planned working hours for that day.
+     * 
+     * @param overtime the calculated overtime hours
+     * @param date the date for which to check working time
+     * @param userLocalId the user to check overtime permissions for
+     * @param workingTimes cached list of working times for the user
+     * @param overtimeAccount cached overtime account for the user
+     * @return capped overtime hours if overtime is not allowed, otherwise original overtime hours
+     */
+    private OvertimeHours applyOvertimeCap(OvertimeHours overtime, LocalDate date, UserLocalId userLocalId, 
+                                          List<WorkingTime> workingTimes, OvertimeAccount overtimeAccount) {
+        
+        // If overtime is allowed, return original overtime
+        if (overtimeAccount.isAllowed()) {
+            return overtime;
+        }
+        
+        // Find appropriate working time for the date
+        final WorkingTime workingTime = workingTimes.stream()
+            .filter(wt -> wt.validFrom().isEmpty() || !date.isBefore(wt.validFrom().get()))
+            .filter(wt -> wt.validTo().isEmpty() || !date.isAfter(wt.validTo().get()))
+            .findFirst()
+            .orElse(null);
+        
+        if (workingTime != null) {
+            final Duration plannedHours = workingTime.getForDayOfWeek(date.getDayOfWeek()).duration();
+            
+            // Calculate worked hours from overtime (overtime = worked - planned)
+            // So worked = overtime + planned
+            final Duration workedHours = overtime.duration().plus(plannedHours);
+            
+            // Cap worked hours at planned hours (no overtime allowed)
+            if (workedHours.compareTo(plannedHours) > 0) {
+                return OvertimeHours.ZERO;
+            }
+        }
+        
+        return overtime;
     }
 }
