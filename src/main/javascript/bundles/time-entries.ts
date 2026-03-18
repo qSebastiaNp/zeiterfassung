@@ -6,4 +6,6 @@ import "../components/time-entry-user-search";
 
 // Ensure TimeEntrySlotForm is loaded and available globally
 import TimeEntrySlotForm from "../components/time-entry-slot-form/TimeEntrySlotForm";
-(window as any).TimeEntrySlotForm = TimeEntrySlotForm;
+(
+  globalThis as typeof globalThis & { TimeEntrySlotForm: unknown }
+).TimeEntrySlotForm = TimeEntrySlotForm;

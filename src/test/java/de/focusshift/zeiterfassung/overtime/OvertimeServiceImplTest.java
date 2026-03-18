@@ -15,6 +15,8 @@ import de.focusshift.zeiterfassung.usermanagement.UserLocalId;
 import de.focusshift.zeiterfassung.workduration.WorkDuration;
 import de.focusshift.zeiterfassung.workingtime.PlannedWorkingHours;
 import de.focusshift.zeiterfassung.workingtime.WorkingTimeCalendar;
+import de.focusshift.zeiterfassung.workingtime.WorkingTimeService;
+import de.focusshift.zeiterfassung.usermanagement.OvertimeAccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,9 +46,15 @@ class OvertimeServiceImplTest {
     @Mock
     private ReportServiceRaw reportServiceRaw;
 
+    @Mock
+    private OvertimeAccountService overtimeAccountService;
+
+    @Mock
+    private WorkingTimeService workingTimeService;
+
     @BeforeEach
     void setUp() {
-        sut = new OvertimeServiceImpl(reportServiceRaw);
+        sut = new OvertimeServiceImpl(reportServiceRaw, overtimeAccountService, workingTimeService);
     }
 
     @Test
