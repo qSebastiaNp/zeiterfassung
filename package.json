@@ -2,7 +2,7 @@
   "private": true,
   "name": "@focus-shift/zeiterfassung",
   "scripts": {
-    "build": "concurrently 'npm:lint:*' 'npm:build:*' -c 'bgRed.bold,bgBlue.bold'",
+    "build": "concurrently \"npm:lint:*\" \"npm:build:*\" -c \"bgRed.bold,bgBlue.bold\"",
     "build:js": "rollup -c",
     "build:css": "postcss src/main/css/bundles --dir target/classes/static/css",
     "dev": "concurrently 'npm:lint:ts -- --watch' 'npm:dev:*' -c 'bgRed.bold,bgBlue.bold'",

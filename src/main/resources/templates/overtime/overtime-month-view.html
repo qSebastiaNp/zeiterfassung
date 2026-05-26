@@ -1,0 +1,200 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de" th:lang="${lang}">
+  <head
+    th:replace="~{_layout::head(title=~{::title}, styles=~{::styles}, scripts=~{::scripts}, scriptsDefer=~{::scriptsDefer})}"
+  >
+    <title th:text="#{overtime.month.page.title} + ' ' + ${monthLabel}">Überstunden - Monatsansicht</title>
+    <th:block th:fragment="styles">
+      <style>
+        @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          
+          /* Hide header/menu for print */
+          header { display: none !important; }
+          nav { display: none !important; }
+          .sticky.top-0 { display: none !important; }
+          
+          /* Hide footer and fixed bottom bar for print */
+          footer { display: none !important; }
+          #fixed-bottom-bar { display: none !important; }
+          
+          /* Reduce spacing for print */
+          .mb-16 { margin-bottom: 0 !important; }
+          .mb-28 { margin-bottom: 0 !important; }
+          .mb-8 { margin-bottom: 0.5rem !important; }
+          .mb-4 { margin-bottom: 0.25rem !important; }
+          .p-6 { padding: 0.75rem !important; }
+          .px-6 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+          .py-4 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+          .py-3 { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
+          .py-2 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+          
+          /* Reduce font sizes for print */
+          .text-2xl { font-size: 1.5rem !important; line-height: 1.75rem !important; }
+          .text-lg { font-size: 0.9rem !important; line-height: 1.25rem !important; }
+          .text-sm { font-size: 0.75rem !important; line-height: 1rem !important; }
+          .text-xs { font-size: 0.7rem !important; line-height: 0.875rem !important; }
+          .text-3xl { font-size: 0.9rem !important; line-height: 1.25rem !important; }
+          
+          /* Reduce table row height */
+          td, th { padding: 0.4rem 0.75rem !important; }
+          
+          /* Keep shadow and border for print */
+          .shadow-md { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important; }
+          .border-b { border-bottom: 1px solid #e5e7eb !important; }
+          
+          /* Hide info section for print to save space */
+          .print-hide { display: none !important; }
+          
+          /* Hide rows with no work time for print */
+          tr.no-work-time { display: none !important; }
+          
+          /* Add page break before month header */
+          h1 { page-break-before: always; }
+        }
+        .print-only { display: none; }
+      </style>
+    </th:block>
+  </head>
+  <body th:replace="~{_layout::body(~{::content}, ~{})}">
+    <th:block th:fragment="content">
+      <main class="flex-1 flex flex-col">
+        <div class="mx-auto w-full max-w-screen-lg mb-16 md:mb-28">
+          <div class="px-4">
+            <!-- Navigation -->
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+              <h1 class="text-2xl text-blue-700 text-center lg:text-left mb-4 lg:mb-0" th:text="${monthLabel}">
+                Januar 2024
+              </h1>
+              <div class="flex justify-center lg:justify-end space-x-4 items-center no-print">
+                <a
+                  th:href="@{/overtime/year/{year}(year=${year})}"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <span>Jahresübersicht</span>
+                </a>
+                <a
+                  th:href="@{/overtime/year/{year}/month/{month}(year=${previousYear}, month=${previousMonth})}"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7 7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 13-7-7 7" />
+                  </svg>
+                  <span th:text="#{overtime.month.previous}">Vorheriger Monat</span>
+                </a>
+                <a
+                  th:if="${canNavigateToNext}"
+                  th:href="@{/overtime/year/{year}/month/{month}(year=${nextYear}, month=${nextMonth})}"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <span th:text="#{overtime.month.next}">Nächster Monat</span>
+                  <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <!-- Month Summary Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 class="text-lg font-semibold text-gray-800 mb-4" th:text="#{overtime.month.summary.title}">
+                Monatsübersicht
+              </h2>
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-600" th:text="#{overtime.month.total}">Gesamt</p>
+                  <p class="text-3xl font-bold" 
+                     th:classappend="${monthTotalNegative ? 'text-red-600' : 'text-green-600'}"
+                     th:text="${monthTotalFormatted}">
+                    +5:30
+                  </p>
+                </div>
+                <div class="text-right">
+                  <svg th:replace="~{icons/trending-up::svg}" class="w-12 h-12 text-gray-400"></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Daily Breakdown -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+              <div class="px-6 py-4 bg-gray-50 border-b">
+                <h3 class="text-lg font-semibold text-gray-800" 
+                    th:text="#{overtime.month.daily.title}">
+                  Täglich
+                </h3>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.date}">
+                        Datum
+                      </th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.times}">
+                        Zeiten
+                      </th>
+                      <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.overtime}">
+                        Überstunden
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr th:each="dailyOvertime : ${dailyData}" 
+                        th:classappend="${dailyOvertime.hasNoWorkTime} ? 'no-work-time' : ''">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span th:text="${#temporals.format(dailyOvertime.date, 'EEE, dd.MM.')}">Mo, 01.03.</span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span th:if="${not #strings.isEmpty(dailyOvertime.timeEntriesCompact)}" 
+                              class="text-xs tabular-nums"
+                              th:text="${dailyOvertime.timeEntriesCompact}">
+                          12:31 - 14:12, 15:10 - 16:45
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium" 
+                          th:classappend="${dailyOvertime.isNegative ? 'text-red-600' : 'text-green-600'}">
+                        <span th:if="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}">(<span th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>)</span>
+                        <span th:unless="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}" th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="mt-8 bg-blue-50 rounded-lg p-6 no-print print-hide">
+              <h3 class="text-lg font-semibold text-blue-800 mb-2" th:text="#{overtime.info.title}">
+                Informationen zu Ihren Überstunden
+              </h3>
+              <div class="space-y-2 text-sm text-blue-700">
+                <p th:text="#{overtime.year.info.description}">
+                  Hier sehen Sie Ihre täglichen Überstunden bzw. Minusstunden für den ausgewählten Monat.
+                </p>
+                <p class="text-xs text-blue-600 italic">
+                  <strong>Hinweis:</strong> Die Überstunden des heutigen Tages stehen in Klammern und werden nicht in die Monatsgesamtsumme einberechnet, da der Tag noch nicht abgeschlossen ist.
+                </p>
+                <ul class="list-disc list-inside space-y-1">
+                  <li th:text="#{overtime.info.positive}">
+                    Positive Werte zeigen Überstunden an
+                  </li>
+                  <li th:text="#{overtime.info.negative}">
+                    Negative Werte zeigen Minusstunden an
+                  </li>
+                  <li th:text="#{overtime.info.balance}">
+                    Der Saldo zeigt Ihre aktuelle Gesamtbilanz
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </th:block>
+  </body>
+</html>

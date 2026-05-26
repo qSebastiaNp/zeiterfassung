@@ -2,6 +2,9 @@ package de.focusshift.zeiterfassung.overtime;
 
 import de.focus_shift.launchpad.api.HasLaunchpad;
 import de.focusshift.zeiterfassung.security.AuthenticationFacade;
+import de.focusshift.zeiterfassung.timeentry.TimeEntry;
+import de.focusshift.zeiterfassung.timeentry.TimeEntryService;
+import de.focusshift.zeiterfassung.user.DateFormatter;
 import de.focusshift.zeiterfassung.usermanagement.User;
 import de.focusshift.zeiterfassung.usermanagement.UserLocalId;
 import de.focusshift.zeiterfassung.usermanagement.UserManagementService;
@@ -31,15 +34,19 @@ public class OvertimeViewController implements HasLaunchpad {
     private final AuthenticationFacade authenticationFacade;
     private final MessageSource messageSource;
     private final LocaleResolver localeResolver;
+    private final TimeEntryService timeEntryService;
+    private final DateFormatter dateFormatter;
 
     public OvertimeViewController(OvertimeService overtimeService, UserManagementService userManagementService, 
                                 AuthenticationFacade authenticationFacade, MessageSource messageSource,
-                                LocaleResolver localeResolver) {
+                                LocaleResolver localeResolver, TimeEntryService timeEntryService, DateFormatter dateFormatter) {
         this.overtimeService = overtimeService;
         this.userManagementService = userManagementService;
         this.authenticationFacade = authenticationFacade;
         this.messageSource = messageSource;
         this.localeResolver = localeResolver;
+        this.timeEntryService = timeEntryService;
+        this.dateFormatter = dateFormatter;
     }
 
     @GetMapping
@@ -56,6 +63,79 @@ public class OvertimeViewController implements HasLaunchpad {
         return "redirect:/overtime/year/" + currentYear;
     }
     
+    @GetMapping("/year/{year}/month/{month}")
+    public String viewOvertimeMonth(@PathVariable int year, @PathVariable int month, Model model, HttpServletRequest request) {
+        final var userIdComposite = authenticationFacade.getCurrentUserIdComposite();
+        final Optional<User> userOptional = userManagementService.findUserByLocalId(userIdComposite.localId());
+        
+        if (userOptional.isEmpty()) {
+            return "redirect:/login";
+        }
+
+        final User user = userOptional.get();
+        final UserLocalId userLocalId = userIdComposite.localId();
+        final LocalDate today = LocalDate.now();
+        final YearMonth yearMonth = YearMonth.of(year, month);
+        final boolean isCurrentMonth = yearMonth.equals(YearMonth.from(today));
+        
+        final LocalDate monthStart = yearMonth.atDay(1);
+        final LocalDate monthEnd = yearMonth.atEndOfMonth();
+        final LocalDate actualMonthEnd = isCurrentMonth ? today : monthEnd;
+        
+        final Map<LocalDate, OvertimeHours> overtimeByDate = overtimeService.getOvertimeForDatesAndUser(monthStart, actualMonthEnd, userLocalId);
+        
+        OvertimeHours monthTotal = OvertimeHours.ZERO;
+        final List<DailyOvertimeDto> dailyData = new ArrayList<>();
+        
+        for (LocalDate date = actualMonthEnd; !date.isBefore(monthStart); date = date.minusDays(1)) {
+            final OvertimeHours dailyOvertime = overtimeByDate.getOrDefault(date, OvertimeHours.ZERO);
+            final boolean isToday = date.equals(today);
+            
+            if (!isToday) {
+                monthTotal = monthTotal.plus(dailyOvertime);
+            }
+            
+            final List<TimeEntry> dayEntries = timeEntryService.getEntries(date, date.plusDays(1), userLocalId);
+            final String timeEntriesCompact = dayEntries.stream()
+                .filter(entry -> !entry.isBreak())
+                .filter(entry -> entry.start() != null && entry.end() != null)
+                .sorted((e1, e2) -> e1.start().compareTo(e2.start()))
+                .map(entry -> String.format("%s - %s", entry.start().toLocalTime(), entry.end().toLocalTime()))
+                .collect(java.util.stream.Collectors.joining(", "));
+            
+            final boolean hasNoWorkTime = !isToday && dailyOvertime.equals(OvertimeHours.ZERO) && timeEntriesCompact.isEmpty();
+            
+            dailyData.add(new DailyOvertimeDto(
+                date,
+                dailyOvertime,
+                DurationFormatter.toDurationString(dailyOvertime.duration(), messageSource, localeResolver.resolveLocale(request)),
+                dailyOvertime.isNegative(),
+                timeEntriesCompact,
+                hasNoWorkTime
+            ));
+        }
+        
+        final YearMonth previousMonth = yearMonth.minusMonths(1);
+        final YearMonth nextMonth = yearMonth.plusMonths(1);
+        final boolean canNavigateToNext = nextMonth.isBefore(YearMonth.from(today));
+        
+        model.addAttribute("year", year);
+        model.addAttribute("month", month);
+        model.addAttribute("monthLabel", dateFormatter.formatYearMonth(yearMonth));
+        model.addAttribute("previousYear", previousMonth.getYear());
+        model.addAttribute("previousMonth", previousMonth.getMonthValue());
+        model.addAttribute("nextYear", nextMonth.getYear());
+        model.addAttribute("nextMonth", nextMonth.getMonthValue());
+        model.addAttribute("canNavigateToNext", canNavigateToNext);
+        model.addAttribute("dailyData", dailyData);
+        model.addAttribute("monthTotal", monthTotal);
+        model.addAttribute("monthTotalFormatted", DurationFormatter.toDurationString(monthTotal.duration(), messageSource, localeResolver.resolveLocale(request)));
+        model.addAttribute("monthTotalNegative", monthTotal.isNegative());
+        model.addAttribute("user", user);
+        
+        return "overtime/overtime-month-view";
+    }
+
     @GetMapping("/year/{year}")
     public String viewOvertimeYear(@PathVariable int year, Model model, HttpServletRequest request) {
         final var userIdComposite = authenticationFacade.getCurrentUserIdComposite();
@@ -142,16 +222,37 @@ public class OvertimeViewController implements HasLaunchpad {
                         if (!isToday) {
                             monthTotal = monthTotal.plus(dailyOvertime);
                         }
+                        
+                        // Get time entries for this day
+                        final List<TimeEntry> dayEntries = timeEntryService.getEntries(date, date.plusDays(1), userLocalId);
+                        final String timeEntriesCompact = dayEntries.stream()
+                            .filter(entry -> !entry.isBreak())
+                            .filter(entry -> entry.start() != null && entry.end() != null)
+                            .sorted((e1, e2) -> e1.start().compareTo(e2.start()))
+                            .map(entry -> String.format("%s - %s", entry.start().toLocalTime(), entry.end().toLocalTime()))
+                            .collect(java.util.stream.Collectors.joining(", "));
+                        
+                        final boolean hasNoWorkTime = !isToday && dailyOvertime.equals(OvertimeHours.ZERO) && timeEntriesCompact.isEmpty();
+                        
+                        dailyData.add(new DailyOvertimeDto(
+                            date,
+                            dailyOvertime,
+                            DurationFormatter.toDurationString(dailyOvertime.duration(), messageSource, localeResolver.resolveLocale(request)),
+                            dailyOvertime.isNegative(),
+                            timeEntriesCompact,
+                            hasNoWorkTime
+                        ));
                     } else {
                         dailyOvertime = OvertimeHours.ZERO;
+                        dailyData.add(new DailyOvertimeDto(
+                            date,
+                            dailyOvertime,
+                            DurationFormatter.toDurationString(dailyOvertime.duration(), messageSource, localeResolver.resolveLocale(request)),
+                            dailyOvertime.isNegative(),
+                            "",
+                            false
+                        ));
                     }
-                    
-                    dailyData.add(new DailyOvertimeDto(
-                        date,
-                        dailyOvertime,
-                        DurationFormatter.toDurationString(dailyOvertime.duration(), messageSource, localeResolver.resolveLocale(request)),
-                        dailyOvertime.isNegative()
-                    ));
                 }
             }
             // Future months are completely skipped (no else block needed)
@@ -181,14 +282,31 @@ public class OvertimeViewController implements HasLaunchpad {
         model.addAttribute("yearTotalNegative", yearTotal.isNegative());
         model.addAttribute("user", user);
         
+        // Create month options for dropdown
+        final List<MonthOptionDto> monthOptions = new ArrayList<>();
+        for (int m = currentMonthValue; m >= 1; m--) {
+            final YearMonth yearMonth = YearMonth.of(year, m);
+            final String label = dateFormatter.formatYearMonth(yearMonth);
+            final String url = String.format("/overtime/year/%d/month/%d", year, m);
+            monthOptions.add(new MonthOptionDto(url, label));
+        }
+        model.addAttribute("monthOptions", monthOptions);
+        
         return "overtime/overtime-year-view";
     }
+    
+    public record MonthOptionDto(
+        String url,
+        String label
+    ) {}
     
     public record DailyOvertimeDto(
         LocalDate date,
         OvertimeHours overtime,
         String overtimeFormatted,
-        boolean isNegative
+        boolean isNegative,
+        String timeEntriesCompact,
+        boolean hasNoWorkTime
     ) {}
     
     public record MonthlyOvertimeDto(

@@ -14,3 +14,5 @@
 
 # maven wrapper
 !.mvn/wrapper/maven-wrapper.jar
+
+.examples/docker-compose/postgres-data/
