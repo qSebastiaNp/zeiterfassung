@@ -1,20 +1,21 @@
 services:
 
   zeiterfassung:
-    image: urlaubsverwaltung/zeiterfassung:3.0.0
-    network_mode: "host"
+    image: ${ZEITERFASSUNG_IMAGE:-zeiterfassung:latest}
+    ports:
+      - '8060:8060'
     environment:
-      SERVER_PORT: 8080
+      SERVER_PORT: 8060
       # Database
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/zeiterfassung
-      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/zeiterfassung
+      SPRING_DATASOURCE_USERNAME: app_user
       SPRING_DATASOURCE_PASSWORD: password
       # Mail
       ZEITERFASSUNG_MAIL_FROM: zeiterfassung@example.org
       ZEITERFASSUNG_MAIL_FROMDISPLAYNAME: zeiterfassung
       ZEITERFASSUNG_MAIL_REPLYTO: replyto@example.org
       ZEITERFASSUNG_MAIL_REPLYTODISPLAYNAME: replyto
-      SPRING_MAIL_HOST: localhost
+      SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: 1025
       # OpenID Connect identity provider
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_DEFAULT_CLIENT-ID: zeiterfassung
@@ -23,11 +24,12 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_DEFAULT_PROVIDER: default
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_DEFAULT_SCOPE: openid,profile,email,roles
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_DEFAULT_AUTHORIZATION-GRANT-TYPE: authorization_code
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_DEFAULT_REDIRECT-URI: http://{baseHost}:8080/login/oauth2/code/{registrationId}
-      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_DEFAULT_ISSUER-URI: http://localhost:8090/realms/zeiterfassung-realm
-      ZEITERFASSUNG_SECURITY_OIDC_SERVER-URL: http://localhost:8090
-      ZEITERFASSUNG_SECURITY_OIDC_LOGIN-FORM-URL: http://localhost:8080/oauth2/authorization/default
-      ZEITERFASSUNG_SECURITY_OIDC_CLAIM-MAPPERS_GROUP-CLAIM_ENABLED: true
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_DEFAULT_REDIRECT-URI: http://{baseHost}:8060/login/oauth2/code/{registrationId}
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_DEFAULT_ISSUER-URI: http://keycloak:8090/realms/zeiterfassung-realm
+      ZEITERFASSUNG_SECURITY_OIDC_SERVER-URL: http://keycloak:8090
+      ZEITERFASSUNG_SECURITY_OIDC_LOGIN-FORM-URL: http://localhost:8060/oauth2/authorization/default
+      ZEITERFASSUNG_SECURITY_OIDC_ISSUER-URL: http://keycloak:8090/realms/zeiterfassung-realm
+      ZEITERFASSUNG_SECURITY_OIDC_CLAIM-MAPPERS_GROUP-CLAIM_ENABLED: 'true'
       SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
     depends_on:
       keycloak:
@@ -39,17 +41,20 @@ services:
 
   postgres:
     image: postgres:18.4
-    ports:
-      - '5432:5432'
     environment:
       POSTGRES_DB: zeiterfassung
-      POSTGRES_USER: user
+      POSTGRES_USER: app_user
       POSTGRES_PASSWORD: password
+    ports:
+      - '5432:5432'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       interval: 3s
       timeout: 1s
       retries: 5
+    volumes:
+      - ./init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
+      #- ./postgres-data:/var/lib/postgresql/data
 
   mailpit:
     image: axllent/mailpit:v1.30.0
@@ -64,6 +69,9 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.2
     command: ["start-dev", "--import-realm"]
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -71,8 +79,13 @@ services:
       KC_HOSTNAME_STRICT: 'false'
       KC_HOSTNAME_STRICT_HTTPS: 'false'
       KC_HEALTH_ENABLED: 'true'
+      KC_HTTP_ENABLED: 'true'
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
       KC_CACHE: 'local'
-      KC_HOSTNAME: 'localhost'
+      KC_HOSTNAME: 'keycloak'
     ports:
       - '8090:8090'
     volumes:
@@ -82,3 +95,4 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+      start_period: 30s

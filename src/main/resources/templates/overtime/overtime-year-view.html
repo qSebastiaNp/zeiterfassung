@@ -18,7 +18,21 @@
               <h1 class="text-2xl text-blue-700 text-center lg:text-left mb-4 lg:mb-0" th:text="#{overtime.year.page.title} + ' ' + ${year}">
                 Überstunden <span th:text="${year}">2024</span>
               </h1>
-              <div class="flex justify-center lg:justify-end space-x-4">
+              <div class="flex justify-center lg:justify-end space-x-4 items-center">
+                <select
+                  th:if="${not #lists.isEmpty(monthOptions)}"
+                  class="cursor-pointer px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onchange="window.location.href=this.value"
+                >
+                  <option value="" disabled selected>-- Monat wählen --</option>
+                  <option
+                    th:each="monthOption : ${monthOptions}"
+                    th:value="${monthOption.url}"
+                    th:text="${monthOption.label}"
+                  >
+                    Januar 2024
+                  </option>
+                </select>
                 <a
                   th:if="${previousYear}"
                   th:href="@{/overtime/year/{year}(year=${previousYear})}"
@@ -87,20 +101,31 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.date}">
                           Datum
                         </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.times}">
+                          Zeiten
+                        </th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" th:text="#{overtime.daily.overtime}">
                           Überstunden
                         </th>
                       </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                      <tr th:each="dailyOvertime : ${monthData.dailyData}">
+                      <tr th:each="dailyOvertime : ${monthData.dailyData}" 
+                          th:classappend="${dailyOvertime.hasNoWorkTime} ? 'no-work-time' : ''">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <span th:text="${#temporals.format(dailyOvertime.date, 'EEE, dd.MM.')}">Mo, 01.03.</span>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span th:if="${not #strings.isEmpty(dailyOvertime.timeEntriesCompact)}" 
+                                class="text-xs tabular-nums"
+                                th:text="${dailyOvertime.timeEntriesCompact}">
+                            12:31 - 14:12, 15:10 - 16:45
+                          </span>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium" 
                             th:classappend="${dailyOvertime.isNegative ? 'text-red-600' : 'text-green-600'}">
-                            <span th:if="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}">(<span th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>)</span>
-                            <span th:unless="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}" th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>
+                          <span th:if="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}">(<span th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>)</span>
+                          <span th:unless="${dailyOvertime.date.equals(#temporals.createNow().toLocalDate())}" th:text="${dailyOvertime.overtimeFormatted}">+0:30</span>
                         </td>
                       </tr>
                     </tbody>
