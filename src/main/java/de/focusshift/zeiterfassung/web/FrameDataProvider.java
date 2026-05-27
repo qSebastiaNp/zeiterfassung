@@ -60,6 +60,10 @@ class FrameDataProvider extends DataProviderInterceptor {
         final boolean timeentriesActive = url.equals(timeentries);
         final AriaCurrent timeentriesCurrent = timeentriesActive ? AriaCurrent.PAGE : AriaCurrent.FALSE;
 
+        final String overtime = "/overtime";
+        final boolean overtimeActive = url.startsWith(overtime);
+        final AriaCurrent overtimeCurrent = overtimeActive ? AriaCurrent.PAGE : AriaCurrent.FALSE;
+
         final String report = "/report";
         final boolean reportActive = url.startsWith(report);
         final AriaCurrent reportCurrent = reportActive ? AriaCurrent.PAGE : AriaCurrent.FALSE;
@@ -74,6 +78,7 @@ class FrameDataProvider extends DataProviderInterceptor {
 
         final List<NavigationItemDto> items = new ArrayList<>();
         items.add(new NavigationItemDto("main-navigation-link-timeentries", timeentries, "navigation.main.timetrack", timeentriesActive, timeentriesCurrent, "navigation-link-timeentries"));
+        items.add(new NavigationItemDto("main-navigation-link-overtime", overtime, "navigation.main.overtime", overtimeActive, overtimeCurrent, "navigation-link-overtime"));
         items.add(new NavigationItemDto("main-navigation-link-reports", report, "navigation.main.reports", reportActive, reportCurrent, "navigation-link-reports"));
 
         if (currentUser.hasAnyRole(ZEITERFASSUNG_WORKING_TIME_EDIT_ALL, ZEITERFASSUNG_OVERTIME_ACCOUNT_EDIT_ALL, ZEITERFASSUNG_PERMISSIONS_EDIT_ALL)) {
