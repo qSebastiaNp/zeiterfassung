@@ -5,7 +5,6 @@
   "semi": true,
   "tabWidth": 2,
   "useTabs": false,
-  "plugins": ["prettier-plugin-svelte"],
   "endOfLine": "auto",
   "overrides": [
     {
