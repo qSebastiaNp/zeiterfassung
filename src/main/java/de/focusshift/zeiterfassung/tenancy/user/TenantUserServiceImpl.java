@@ -109,6 +109,12 @@ class TenantUserServiceImpl implements TenantUserService {
     }
 
     @Override
+    public Optional<TenantUser> findByRfidUid(String rfidUid) {
+        LOG.debug("search user by rfidUid={}", rfidUid);
+        return mapToTenantUser(tenantUserRepository.findByRfidUid(rfidUid));
+    }
+
+    @Override
     public void deleteUser(Long id) {
 
         final Instant now = clock.instant();

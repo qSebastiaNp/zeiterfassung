@@ -26,6 +26,8 @@ public interface TenantUserService {
 
     Optional<TenantUser> findByLocalId(UserLocalId localId);
 
+    Optional<TenantUser> findByRfidUid(String rfidUid);
+
     void deleteUser(Long id);
 
     void activateUser(Long id);

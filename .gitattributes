@@ -1,0 +1,6 @@
+# Shell-Scripts müssen LF haben (sonst kaputt in Docker/Postgres)
+*.sh eol=lf
+
+# Docker Compose YAML
+*.yaml eol=lf
+*.yml eol=lf

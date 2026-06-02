@@ -2,6 +2,7 @@ package de.focusshift.zeiterfassung.overtime;
 
 import de.focus_shift.launchpad.api.HasLaunchpad;
 import de.focusshift.zeiterfassung.security.AuthenticationFacade;
+import de.focusshift.zeiterfassung.timeclock.HasTimeClock;
 import de.focusshift.zeiterfassung.timeentry.TimeEntry;
 import de.focusshift.zeiterfassung.timeentry.TimeEntryService;
 import de.focusshift.zeiterfassung.user.DateFormatter;
@@ -27,7 +28,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 @RequestMapping("/overtime")
-public class OvertimeViewController implements HasLaunchpad {
+public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
 
     private final OvertimeService overtimeService;
     private final UserManagementService userManagementService;

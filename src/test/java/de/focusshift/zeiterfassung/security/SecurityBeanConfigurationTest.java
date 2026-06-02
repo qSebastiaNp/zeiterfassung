@@ -107,6 +107,11 @@ class SecurityBeanConfigurationTest {
         }
 
         @Override
+        public Optional<TenantUser> findByRfidUid(String rfidUid) {
+            return Optional.empty();
+        }
+
+        @Override
         public void deleteUser(Long id) {
 
         }

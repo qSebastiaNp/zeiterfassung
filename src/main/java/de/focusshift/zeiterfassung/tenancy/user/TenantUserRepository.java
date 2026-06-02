@@ -13,6 +13,9 @@ interface TenantUserRepository extends CrudRepository<TenantUserEntity, Long> {
 
     Optional<TenantUserEntity> findByUuid(String uuid);
 
+    @Query(value = "SELECT * FROM tenant_user WHERE rfid_uid = :rfidUid", nativeQuery = true)
+    Optional<TenantUserEntity> findByRfidUid(@Param("rfidUid") String rfidUid);
+
     @NonNull
     List<TenantUserEntity> findAllByOrderByGivenNameAscFamilyNameAsc();
 

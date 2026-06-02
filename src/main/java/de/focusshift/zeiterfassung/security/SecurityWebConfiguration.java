@@ -3,6 +3,7 @@ package de.focusshift.zeiterfassung.security;
 import de.focusshift.zeiterfassung.tenancy.tenant.TenantContextHolder;
 import de.focusshift.zeiterfassung.usermanagement.UserManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.micrometer.metrics.autoconfigure.export.prometheus.PrometheusScrapeEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
@@ -32,6 +33,7 @@ public class SecurityWebConfiguration {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final SessionService sessionService;
     private final UserManagementService userManagementService;
+    private final String apiKey;
 
     @Autowired
     SecurityWebConfiguration(
@@ -39,13 +41,15 @@ public class SecurityWebConfiguration {
         OidcClientInitiatedLogoutSuccessHandler oidcClientInitiatedLogoutSuccessHandler,
         ClientRegistrationRepository clientRegistrationRepository,
         SessionService sessionService,
-        UserManagementService userManagementService
+        UserManagementService userManagementService,
+        @Value("${zeiterfassung.api-key:}") String apiKey
     ) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.oidcClientInitiatedLogoutSuccessHandler = oidcClientInitiatedLogoutSuccessHandler;
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.sessionService = sessionService;
         this.userManagementService = userManagementService;
+        this.apiKey = apiKey;
     }
 
     @Bean
@@ -61,6 +65,7 @@ public class SecurityWebConfiguration {
                 .requestMatchers("/favicons/**").permitAll()
                 .requestMatchers("/browserconfig.xml").permitAll()
                 .requestMatchers("/site.webmanifest").permitAll()
+                .requestMatchers("/api/**").permitAll()
                 .requestMatchers("/", "/**").hasAuthority(ZEITERFASSUNG_USER.name())
                 .anyRequest().authenticated()
             );
@@ -71,8 +76,11 @@ public class SecurityWebConfiguration {
             )
         );
 
-        // exclude /actuator from csrf protection
-        http.securityMatcher(request -> !request.getRequestURI().startsWith("/actuator"))
+        // exclude /actuator and /api from csrf protection
+        http.securityMatcher(request -> {
+                String uri = request.getRequestURI();
+                return !uri.startsWith("/actuator") && !uri.startsWith("/api/");
+            })
             .csrf(csrfConfigurer -> csrfConfigurer.csrfTokenRepository(new HttpSessionCsrfTokenRepository()));
 
         // maybe we can remove the authenticationEntryPoint customization, because
@@ -87,6 +95,7 @@ public class SecurityWebConfiguration {
 
         http.securityContext(securityContext -> securityContext.securityContextRepository(securityContextRepository));
         http.addFilterAfter(new ReloadAuthenticationAuthoritiesFilter(userManagementService, sessionService, securityContextRepository, tenantContextHolder), BasicAuthenticationFilter.class);
+        http.addFilterBefore(new ApiKeyFilter(apiKey), BasicAuthenticationFilter.class);
 
         //@formatter:on
         return http.build();

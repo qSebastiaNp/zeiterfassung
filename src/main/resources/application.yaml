@@ -1,4 +1,5 @@
 zeiterfassung:
+  api-key: "${ZEITERFASSUNG_API_KEY:}"
   mail:
     from: zeiterfassung@localhost
     fromDisplayName: zeiterfassung
