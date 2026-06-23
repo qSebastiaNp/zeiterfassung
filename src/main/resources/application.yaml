@@ -8,6 +8,10 @@ zeiterfassung:
   security:
     oidc:
       login-form-url: ''
+  timeclock:
+    auto-stop:
+      max-hours: 10
+      interval: 300000
 
 server:
   compression:

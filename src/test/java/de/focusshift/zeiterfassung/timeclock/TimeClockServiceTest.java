@@ -1,5 +1,6 @@
 package de.focusshift.zeiterfassung.timeclock;
 
+import de.focusshift.zeiterfassung.tenancy.user.TenantUserService;
 import de.focusshift.zeiterfassung.timeentry.TimeEntryService;
 import de.focusshift.zeiterfassung.user.UserId;
 import de.focusshift.zeiterfassung.user.UserIdComposite;
@@ -44,10 +45,12 @@ class TimeClockServiceTest {
     private UserSettingsProvider userSettingsProvider;
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    private TenantUserService tenantUserService;
 
     @BeforeEach
     void setUp() {
-        sut = new TimeClockService(timeClockRepository, timeEntryService, userSettingsProvider, applicationEventPublisher, Clock.systemUTC());
+        sut = new TimeClockService(timeClockRepository, timeEntryService, userSettingsProvider, applicationEventPublisher, Clock.systemUTC(), tenantUserService);
     }
 
     @Test

@@ -1,5 +1,5 @@
 # Runtime stage - use pre-built JAR
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 # Install curl for health checks
 RUN apk add --no-cache curl
