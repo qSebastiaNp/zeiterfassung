@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.LocaleResolver;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -37,10 +38,12 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
     private final LocaleResolver localeResolver;
     private final TimeEntryService timeEntryService;
     private final DateFormatter dateFormatter;
+    private final Clock clock;
 
     public OvertimeViewController(OvertimeService overtimeService, UserManagementService userManagementService, 
                                 AuthenticationFacade authenticationFacade, MessageSource messageSource,
-                                LocaleResolver localeResolver, TimeEntryService timeEntryService, DateFormatter dateFormatter) {
+                                LocaleResolver localeResolver, TimeEntryService timeEntryService, DateFormatter dateFormatter,
+                                Clock clock) {
         this.overtimeService = overtimeService;
         this.userManagementService = userManagementService;
         this.authenticationFacade = authenticationFacade;
@@ -48,6 +51,7 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
         this.localeResolver = localeResolver;
         this.timeEntryService = timeEntryService;
         this.dateFormatter = dateFormatter;
+        this.clock = clock;
     }
 
     @GetMapping
@@ -59,7 +63,7 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
             return "redirect:/login";
         }
 
-        final int currentYear = LocalDate.now().getYear();
+        final int currentYear = LocalDate.now(clock).getYear();
         
         return "redirect:/overtime/year/" + currentYear;
     }
@@ -75,7 +79,7 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
 
         final User user = userOptional.get();
         final UserLocalId userLocalId = userIdComposite.localId();
-        final LocalDate today = LocalDate.now();
+        final LocalDate today = LocalDate.now(clock);
         final YearMonth yearMonth = YearMonth.of(year, month);
         final boolean isCurrentMonth = yearMonth.equals(YearMonth.from(today));
         
@@ -150,12 +154,12 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
 
         final User user = userOptional.get();
         final UserLocalId userLocalId = userIdComposite.localId();
-        final boolean isCurrentYear = year == LocalDate.now().getYear();
+        final boolean isCurrentYear = year == LocalDate.now(clock).getYear();
         
         // Get overtime data for the entire year
         final LocalDate startDate = LocalDate.of(year, 1, 1);
         final LocalDate endDate = LocalDate.of(year, 12, 31);
-        final LocalDate today = LocalDate.now();
+        final LocalDate today = LocalDate.now(clock);
         
         // Optimize data retrieval: only query months that have data or are in the past
         final LocalDate actualEndDate;
@@ -176,7 +180,7 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
         OvertimeHours yearTotal = OvertimeHours.ZERO;
         
         // Determine current month for prioritization
-        final int currentMonthValue = LocalDate.now().getMonthValue();
+        final int currentMonthValue = LocalDate.now(clock).getMonthValue();
         
         // Create list of months in desired order
         final List<Integer> monthOrder = new ArrayList<>();
@@ -273,7 +277,7 @@ public class OvertimeViewController implements HasLaunchpad, HasTimeClock {
         // Prepare navigation for previous/next years
         final int previousYear = year - 1;
         final int nextYear = year + 1;
-        final boolean canNavigateToNext = year < LocalDate.now().getYear();
+        final boolean canNavigateToNext = year < LocalDate.now(clock).getYear();
         
         model.addAttribute("year", year);
         model.addAttribute("previousYear", previousYear);

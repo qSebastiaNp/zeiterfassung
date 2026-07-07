@@ -16,6 +16,7 @@ import de.focusshift.zeiterfassung.workduration.WorkDuration;
 import de.focusshift.zeiterfassung.workingtime.PlannedWorkingHours;
 import de.focusshift.zeiterfassung.workingtime.WorkingTimeCalendar;
 import de.focusshift.zeiterfassung.workingtime.WorkingTimeService;
+import de.focusshift.zeiterfassung.usermanagement.OvertimeAccount;
 import de.focusshift.zeiterfassung.usermanagement.OvertimeAccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -164,6 +165,11 @@ class OvertimeServiceImplTest {
 
         when(reportServiceRaw.getReportDayForAllUsers(date))
             .thenReturn(new ReportDay(date, false, workingTimeCalendars, reportDayEntries, workDurations, absences));
+
+        when(workingTimeService.getAllWorkingTimesByUser(userLocalIdBatman))
+            .thenReturn(List.of());
+        when(overtimeAccountService.getOvertimeAccount(userLocalIdBatman))
+            .thenReturn(new OvertimeAccount(userIdCompositeBatman, true));
 
         final OvertimeHours actual = sut.getOvertimeForDateAndUser(date, userLocalIdBatman);
         assertThat(actual).isEqualTo(new OvertimeHours(Duration.ofHours(4)));

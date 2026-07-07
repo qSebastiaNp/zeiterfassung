@@ -4,6 +4,8 @@
     th:replace="~{_layout::head(title=~{::title}, styles=~{::styles}, scripts=~{::scripts}, scriptsDefer=~{::scriptsDefer})}"
   >
     <title th:text="#{overtime.month.page.title} + ' ' + ${monthLabel}">Überstunden - Monatsansicht</title>
+    <th:block th:fragment="scripts"></th:block>
+    <th:block th:fragment="scriptsDefer"></th:block>
     <th:block th:fragment="styles">
       <style>
         @media print {

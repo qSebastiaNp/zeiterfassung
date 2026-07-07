@@ -78,7 +78,7 @@ class FrameDataProvider extends DataProviderInterceptor {
 
         final List<NavigationItemDto> basic = new ArrayList<>();
         basic.add(new NavigationItemDto("main-navigation-link-timeentries", timeentries, "navigation.main.timetrack", "clock", timeentriesActive, timeentriesCurrent, "navigation-link-timeentries"));
-        basic.add(new NavigationItemDto("main-navigation-link-overtime", overtime, "navigation.main.overtime", "clock-history", overtimeActive, overtimeCurrent, "navigation-link-overtime"));
+        basic.add(new NavigationItemDto("main-navigation-link-overtime", overtime, "navigation.main.overtime", "file-clock", overtimeActive, overtimeCurrent, "navigation-link-overtime"));
         basic.add(new NavigationItemDto("main-navigation-link-reports", report, "navigation.main.reports", "chart-pie", reportActive, reportCurrent, "navigation-link-reports"));
 
         final List<NavigationItemDto> company = new ArrayList<>();

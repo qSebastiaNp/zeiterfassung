@@ -7,8 +7,10 @@
     <th:block th:fragment="styles">
       <!-- Keine zusätzlichen Stylesheets nötig -->
     </th:block>
+    <th:block th:fragment="scripts"></th:block>
+    <th:block th:fragment="scriptsDefer"></th:block>
   </head>
-  <body th:replace="~{_layout::body(~{::content}, ~{})}">
+  <body th:replace="~{_layout::body(~{::content})}">
     <th:block th:fragment="content">
       <main class="flex-1 flex flex-col">
         <div class="mx-auto w-full max-w-screen-lg mb-16 md:mb-28">

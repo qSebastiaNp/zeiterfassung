@@ -122,7 +122,7 @@ public class TimeClockService {
 
     @Transactional
     int autoStopExpiredTimeClocks() {
-        final Instant cutoff = Instant.now().minus(maxHours, java.time.temporal.ChronoUnit.HOURS);
+        final Instant cutoff = clock.instant().minus(maxHours, java.time.temporal.ChronoUnit.HOURS);
         final List<TimeClockEntity> expired = timeClockRepository.findAllExpiredBefore(cutoff);
 
         for (TimeClockEntity entity : expired) {

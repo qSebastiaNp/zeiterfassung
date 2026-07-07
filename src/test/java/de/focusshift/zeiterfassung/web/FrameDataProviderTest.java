@@ -94,7 +94,7 @@ class FrameDataProviderTest implements ControllerTest {
 
         assertThat(navigationDto(result).items())
             .extracting(NavigationItemDto::getHref)
-            .containsExactly("/timeentries", "/report");
+            .containsExactly("/timeentries", "/overtime", "/report");
     }
 
     @ParameterizedTest
@@ -348,7 +348,8 @@ class FrameDataProviderTest implements ControllerTest {
         final List<NavigationItemDto> items = navigationDto(result).items();
 
         assertThat(items.get(0).getId()).isEqualTo("main-navigation-link-timeentries");
-        assertThat(items.get(1).getId()).isEqualTo("main-navigation-link-reports");
+        assertThat(items.get(1).getId()).isEqualTo("main-navigation-link-overtime");
+        assertThat(items.get(2).getId()).isEqualTo("main-navigation-link-reports");
     }
 
     @Test
@@ -359,7 +360,8 @@ class FrameDataProviderTest implements ControllerTest {
         final List<NavigationItemDto> items = navigationDto(result).items();
 
         assertThat(items.get(0).getMessageKey()).isEqualTo("navigation.main.timetrack");
-        assertThat(items.get(1).getMessageKey()).isEqualTo("navigation.main.reports");
+        assertThat(items.get(1).getMessageKey()).isEqualTo("navigation.main.overtime");
+        assertThat(items.get(2).getMessageKey()).isEqualTo("navigation.main.reports");
     }
 
     @Test
@@ -370,7 +372,8 @@ class FrameDataProviderTest implements ControllerTest {
         final List<NavigationItemDto> items = navigationDto(result).items();
 
         assertThat(items.get(0).getDataTestId()).isEqualTo("navigation-link-timeentries");
-        assertThat(items.get(1).getDataTestId()).isEqualTo("navigation-link-reports");
+        assertThat(items.get(1).getDataTestId()).isEqualTo("navigation-link-overtime");
+        assertThat(items.get(2).getDataTestId()).isEqualTo("navigation-link-reports");
     }
 
     // ==================== Navigation Icon + Group Tests ====================
@@ -384,6 +387,7 @@ class FrameDataProviderTest implements ControllerTest {
             .extracting(NavigationItemDto::getHref, NavigationItemDto::getIconName)
             .containsExactly(
                 tuple("/timeentries", "clock"),
+                tuple("/overtime", "file-clock"),
                 tuple("/report", "chart-pie")
             );
     }
@@ -394,7 +398,7 @@ class FrameDataProviderTest implements ControllerTest {
         final MvcResult result = perform("/test-endpoint", List.of(ZEITERFASSUNG_USER));
 
         final NavigationDto navigation = navigationDto(result);
-        assertThat(navigation.basic()).extracting(NavigationItemDto::getHref).containsExactly("/timeentries", "/report");
+        assertThat(navigation.basic()).extracting(NavigationItemDto::getHref).containsExactly("/timeentries", "/overtime", "/report");
         assertThat(navigation.company()).isEmpty();
         assertThat(navigation.settings()).isEmpty();
         assertThat(navigation.favorites()).isEmpty();
