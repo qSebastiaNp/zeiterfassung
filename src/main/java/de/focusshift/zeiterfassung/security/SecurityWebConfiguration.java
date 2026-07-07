@@ -2,8 +2,8 @@ package de.focusshift.zeiterfassung.security;
 
 import de.focusshift.zeiterfassung.tenancy.tenant.TenantContextHolder;
 import de.focusshift.zeiterfassung.usermanagement.UserManagementService;
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.micrometer.metrics.autoconfigure.export.prometheus.PrometheusScrapeEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
@@ -33,7 +33,6 @@ public class SecurityWebConfiguration {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final SessionService sessionService;
     private final UserManagementService userManagementService;
-    private final String apiKey;
 
     @Autowired
     SecurityWebConfiguration(
@@ -41,15 +40,13 @@ public class SecurityWebConfiguration {
         OidcClientInitiatedLogoutSuccessHandler oidcClientInitiatedLogoutSuccessHandler,
         ClientRegistrationRepository clientRegistrationRepository,
         SessionService sessionService,
-        UserManagementService userManagementService,
-        @Value("${zeiterfassung.api-key:}") String apiKey
+        UserManagementService userManagementService
     ) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.oidcClientInitiatedLogoutSuccessHandler = oidcClientInitiatedLogoutSuccessHandler;
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.sessionService = sessionService;
         this.userManagementService = userManagementService;
-        this.apiKey = apiKey;
     }
 
     @Bean
@@ -59,6 +56,7 @@ public class SecurityWebConfiguration {
         http
             .authorizeHttpRequests(authorizeHttpRequests ->
                 authorizeHttpRequests
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                 .requestMatchers(EndpointRequest.to(PrometheusScrapeEndpoint.class)).permitAll()
                 .requestMatchers("/fonts/*/*", "/style.css").permitAll()
@@ -77,11 +75,13 @@ public class SecurityWebConfiguration {
         );
 
         // exclude /actuator and /api from csrf protection
-        http.securityMatcher(request -> {
-                String uri = request.getRequestURI();
-                return !uri.startsWith("/actuator") && !uri.startsWith("/api/");
-            })
-            .csrf(csrfConfigurer -> csrfConfigurer.csrfTokenRepository(new HttpSessionCsrfTokenRepository()));
+        http
+            .csrf(csrfConfigurer -> csrfConfigurer
+                .ignoringRequestMatchers(request -> {
+                    String uri = request.getRequestURI();
+                    return uri.startsWith("/actuator") || uri.startsWith("/api/");
+                })
+                .csrfTokenRepository(new HttpSessionCsrfTokenRepository()));
 
         // maybe we can remove the authenticationEntryPoint customization, because
         // we are just using a default like configuration
@@ -95,7 +95,6 @@ public class SecurityWebConfiguration {
 
         http.securityContext(securityContext -> securityContext.securityContextRepository(securityContextRepository));
         http.addFilterAfter(new ReloadAuthenticationAuthoritiesFilter(userManagementService, sessionService, securityContextRepository, tenantContextHolder), BasicAuthenticationFilter.class);
-        http.addFilterBefore(new ApiKeyFilter(apiKey), BasicAuthenticationFilter.class);
 
         //@formatter:on
         return http.build();
